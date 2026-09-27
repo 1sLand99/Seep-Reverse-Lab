@@ -749,7 +749,7 @@ static void handle_translate(SOCKET s, const char* path, const char* body, int b
                 sb_str(&out, "{\"id\":"); sb_esc(&out, bid ? bid : "");
                 sb_str(&out, ",\"type\":"); sb_esc(&out, btype ? btype : "text");
                 sb_str(&out, ",\"status\":\"ok\",\"sourceText\":"); sb_esc(&out, btxt);
-                sb_str(&out, ",\"translatedText\":"); sb_esc(&out, tt ? tt : btxt);
+                sb_str(&out, ",\"translatedText\":"); sb_esc(&out, tt ? tt : "[翻译失败: 请检查API Key或额度]");
                 sb_str(&out, "}");
                 if (tt) free(tt);
             } else {
@@ -781,9 +781,9 @@ static void handle_translate(SOCKET s, const char* path, const char* body, int b
                 eff_langs(srcLang, tgtLang, backupLang, txt, so, sizeof(so), to, sizeof(to));
                 tt = llm_translate(txt, so, to, &g_cfg);
                 sb_str(&out, "{\"result\":");
-                sb_esc(&out, tt ? tt : txt);
+                sb_esc(&out, tt ? tt : "[翻译失败: 请检查API Key或额度]");
                 sb_str(&out, ",\"translatedText\":");
-                sb_esc(&out, tt ? tt : txt);
+                sb_esc(&out, tt ? tt : "[翻译失败: 请检查API Key或额度]");
                 sb_str(&out, ",\"sourceText\":"); sb_esc(&out, txt);
                 sb_str(&out, ",\"sourceLang\":"); sb_esc(&out, srcLang ? srcLang : "auto");
                 sb_str(&out, ",\"targetLang\":"); sb_esc(&out, tgtLang ? tgtLang : "zh-cn");
