@@ -1,6 +1,6 @@
-## Seep-Tool v0.2.0 — 第八目标：XYplorer 授权热补丁
+## Seep-Tool v0.2.0 — 第八目标：<项目A> 授权热补丁
 
-### 🆕 新增目标：XYplorer 资源管理器 (28.40.0100, x64 / twinBASIC 982)
+### 🆕 新增目标：<项目A> 资源管理器 (28.40.0100, x64 / twinBASIC 982)
 
 **审计范式：DLL 授权热补丁 + 全 UI 去试用 + 自定义授权信息**
 
@@ -31,7 +31,7 @@
 
 #### 彻底还原（Revert）
 
-一键关闭进程族（`XYplorer` / `XYcopy` / `Uninstall`），删除注入的 `version.dll` 代理、`xyplorer_patch.ini` 自定义授权配置与运行日志，并清空 `XYplorer.ini` 的 `[Register]` 注册痕迹 —— 授权状态 **100% 回落官方 30 天试用**（标题栏重新出现 `### 30 - 天试用版本 - 第 1 天 ###`）。
+一键关闭进程族（`<项目A>` / `XYcopy` / `Uninstall`），删除注入的 `version.dll` 代理、`xyplorer_patch.ini` 自定义授权配置与运行日志，并清空 `<项目A>.ini` 的 `[Register]` 注册痕迹 —— 授权状态 **100% 回落官方 30 天试用**（标题栏重新出现 `### 30 - 天试用版本 - 第 1 天 ###`）。
 
 ### 🛡️ 质量门禁
 

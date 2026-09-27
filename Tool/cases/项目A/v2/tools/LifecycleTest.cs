@@ -1,21 +1,21 @@
-// XYLifecycleTest.cs — 独立验收工装：反射调用 SeepTool.exe 内置的 XYplorerModule
+// LifecycleTest.cs — 独立验收工装：反射调用 SeepTool.exe 内置的<项目A>授权模块
 // 编译: csc /r:SeepTool.exe /out:tools\XYLifecycleTest.exe tools\XYLifecycleTest.cs
 using System;
 using System.Collections.Generic;
 using System.IO;
 
-class XYLifecycleTest
+class LifecycleTest
 {
     static void Main(string[] argv)
     {
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         string exe = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SeepTool.exe"));
-        string dir = argv.Length > 0 ? argv[0] : @"D:\Data\XYplorer";
+        string dir = argv.Length > 0 ? argv[0] : @"D:\Data\<项目A>";
         string stage = argv.Length > 1 ? argv[1] : "all";
 
         var asm = System.Reflection.Assembly.LoadFrom(exe);
         var mod = asm.GetType("Seep.Modules.XYplorerModule");
-        if (mod == null) { Console.WriteLine("[-] 未找到 XYplorerModule"); Environment.Exit(2); }
+        if (mod == null) { Console.WriteLine("[-] 未找到<项目A>授权模块"); Environment.Exit(2); }
 
         if (stage == "check" || stage == "all")
         {

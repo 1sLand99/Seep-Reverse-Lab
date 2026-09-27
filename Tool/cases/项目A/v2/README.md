@@ -78,7 +78,7 @@ key=xy05-Lifetime-License-Pro-Seep-2026
 | :--- | :--- | :--- |
 | `dist/version.dll` | **v2.3 最终交付件**（264,704 字节，`opt-level=z` + LTO 精简构建，含自定义授权信息） | `d06d8b2a` |
 | `samples/version_dll_v2.2_selfbuild_2840.dll` | v2.2 自研构建（856,576 字节，尚未支持自定义授权信息，仅作版本演进对照） | `4eb374d7` |
-| `tools/XYLifecycleTest.exe` | Seep-Tool 集成双向生命周期验收工装（部署 / 还原全链路） | — |
+| `tools/LifecycleTest.cs` | Seep-Tool 集成双向生命周期验收工装源码（编译：`csc /r:SeepTool.exe /out:LifecycleTest.exe LifecycleTest.cs`） | — |
 | `tools/lifecycle_test.ps1` | PowerShell 版生命周期验收脚本 | — |
 | `src/version_dll_poc/lib.rs` | DLL 源码（Rust cdylib，可重编译） | — |
 | `docs/RELEASE_v0.2.0.md` | Seep-Tool v0.2.0 集成发版说明 | — |
@@ -96,4 +96,24 @@ key=xy05-Lifetime-License-Pro-Seep-2026
    - `src/version_dll_poc/lib.rs`：完整无错开源工程源码。
 
 ---
+
+## 四、 脱敏策略说明（Desensitization Policy）
+
+> 本案例库为公开归档，遵循「删掉后**无法复现**的 → 保留；只是读起来像产品名的 → 替换」判据。
+
+| 层级 | 处理 | 本案例实例 |
+| :--- | :--- | :--- |
+| **散文 / 注释 / 日志文案** | 必须替换 | `<项目A>` 授权模块、`未找到<项目A>授权模块` |
+| **产品名 / 可执行文件名** | 必须替换 | `<项目A>.exe`、`<项目A>.ini`、`<项目A>64_28.30_Install.exe` |
+| **安装路径** | 必须替换 | `D:\Data\<项目A>` |
+| **代码标识符（API 全名）** | **保留原文**（替换即失效） | `Seep.Modules.XYplorerModule`（反射调用入口，共 2 处） |
+| **注册表 / 配置节名** | 保留原文 | `[Register]`、`Code=`、`Name=` |
+| **资源标题 / 对话框字符串** | 保留原文 | `### 30 - 天试用版本 - 第 1 天 ###` |
+| **官方域名** | 保留原文 | — |
+
+**残留复核结果**：本次新增文件经脱敏门禁走查，除 `Seep.Modules.XYplorerModule`（反射 API 全名，共 2 处，替换将导致工装失效）外，**产品名与绝对路径残留为 0**。
+
+---
+
 *归档整理：小π · seep 工作台*
+

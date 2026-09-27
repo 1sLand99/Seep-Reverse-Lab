@@ -1,17 +1,17 @@
-# lifecycle_test.ps1 — 通过反射调用 SeepTool.exe 内置模块，验证 XYplorer 双向生命周期
+# lifecycle_test.ps1 — 通过反射调用 SeepTool.exe 内置模块，验证 <项目A> 双向生命周期
 # 用法: powershell -NoProfile -ExecutionPolicy Bypass -File .\lifecycle_test.ps1
 $ErrorActionPreference = 'Continue'
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, System.Xaml
 
 $root = 'C:\Users\Angus\Desktop\pi\seep\project\Seep-TooL'
 $exe  = Join-Path $root 'SeepTool.exe'
-$dir  = 'D:\Data\XYplorer'
-$XY   = Join-Path $dir 'XYplorer.exe'
+$dir  = 'D:\Data\<项目A>'
+$XY   = Join-Path $dir '<项目A>.exe'
 
 Write-Host "=== 加载 SeepTool.exe 程序集 ==="
 $asm = [Reflection.Assembly]::LoadFrom($exe)
 $mod = $asm.GetType('Seep.Modules.XYplorerModule')
-if ($null -eq $mod) { Write-Host "[-] 未找到 XYplorerModule"; exit 1 }
+if ($null -eq $mod) { Write-Host "[-] 未找到<项目A>授权模块"; exit 1 }
 Write-Host "[+] 已加载: $($mod.FullName)"
 
 function NewLog { New-Object 'System.Collections.Generic.List[string]' }
@@ -43,8 +43,8 @@ Show $l2
 Write-Host "    状态 = $st2"
 
 # ── 阶段 3: 启动验证 ──
-Write-Host "`n=== 阶段 3: 启动 XYplorer 验证激活效果 ==="
-Get-Process XYplorer -ErrorAction SilentlyContinue | Stop-Process -Force
+Write-Host "`n=== 阶段 3: 启动 <项目A> 验证激活效果 ==="
+Get-Process <项目A> -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep 2
 $p = Start-Process -FilePath $XY -WorkingDirectory $dir -PassThru
 Start-Sleep 14
@@ -68,7 +68,7 @@ public class W {
         int n = GetWindowTextLengthW(h);
         var sb = new StringBuilder(n+2); GetWindowTextW(h, sb, n+2);
         string t = sb.ToString();
-        if (t.Contains("XYplorer") && n > 20) res = t;
+        if (t.Contains("<项目A>") && n > 20) res = t;
       } return true; }, IntPtr.Zero);
     return res;
   }
@@ -103,7 +103,7 @@ for ($i = 0; $i -lt 12; $i++) {
     if ($null -eq $q) { Write-Host "    !! 进程在 $((($i+1)*5)) 秒时消失"; $crashed = $true; break }
 }
 if (-not $crashed) { Write-Host "    [+] 60 秒稳定运行，无崩溃" }
-Get-Process XYplorer -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process <项目A> -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep 3
 
 # ── 阶段 5: 还原 ──
@@ -131,7 +131,7 @@ Start-Sleep 12
 $t7 = [W]::Title($p7.Id)
 Write-Host "    标题栏  : $t7"
 Write-Host "    license_type = $([W]::Dword($p7.Id, 0x140000000 + 0x22FD724))"
-Get-Process XYplorer -ErrorAction SilentlyContinue | Stop-Process -Force
+Get-Process <项目A> -ErrorAction SilentlyContinue | Stop-Process -Force
 
 Write-Host "`n================ 生命周期验收汇总 ================"
 Write-Host "  阶段1 部署        : $ok1"
