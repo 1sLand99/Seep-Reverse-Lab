@@ -76,12 +76,12 @@ key=xy05-Lifetime-License-Pro-Seep-2026
 ### 8. 交付物清单（v2.3）
 | 文件 | 说明 | SHA-256（前 8 位） |
 | :--- | :--- | :--- |
-| `dist/version.dll` | **v2.3 最终交付件**（264,704 字节，`opt-level=z` + LTO 精简构建，含自定义授权信息） | `d06d8b2a` |
+| `dist/version.dll` | **v2.3 最终交付件**（256,512 字节，`opt-level=z` + LTO 精简构建，含自定义授权信息） | `957b2cfd` |
 | `samples/version_dll_v2.2_selfbuild_2840.dll` | v2.2 自研构建（856,576 字节，尚未支持自定义授权信息，仅作版本演进对照） | `4eb374d7` |
 | `tools/LifecycleTest.cs` | Seep-Tool 集成双向生命周期验收工装源码（编译：`csc /r:SeepTool.exe /out:LifecycleTest.exe LifecycleTest.cs`） | — |
 | `tools/lifecycle_test.ps1` | PowerShell 版生命周期验收脚本 | — |
 | `src/version_dll_poc/lib.rs` | DLL 源码（Rust cdylib，可重编译） | — |
-| `docs/RELEASE_v0.2.0.md` | Seep-Tool v0.2.0 集成发版说明 | — |
+| `docs/RELEASE_v0.2.1.md` | Seep-Tool v0.2.0 集成发版说明 | — |
 
 ---
 

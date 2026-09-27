@@ -43,6 +43,9 @@ struct Map {
     size_of_image: u32,
     lic: usize,
     flag: usize,
+    name_g: usize,
+    code1_g: usize,
+    code2_g: usize,
     code_patches: &'static [CodePatch],
 }
 
@@ -92,12 +95,18 @@ static MAPS: [Map; 2] = [
         size_of_image: 0x0285_0000,
         lic: 0x22FD724,
         flag: 0x230170C,
+        name_g: 0x2235A88,
+        code1_g: 0x2281C70,
+        code2_g: 0x21FDDE0,
         code_patches: &PATCHES_2840,
     },
     Map {
         size_of_image: 0x0283_B000,
         lic: 0x22E4D5C,
         flag: 0x22E8D44,
+        name_g: 0x221CEF8,
+        code1_g: 0x22694A0,
+        code2_g: 0x21E52F0,
         code_patches: &PATCHES_2830,
     },
 ];
@@ -185,12 +194,15 @@ unsafe fn patch() -> bool {
 unsafe extern "system" fn worker(_param: *mut c_void) -> u32 {
     let mut reported = false;
     for i in 0..2400 {
-        if patch() && !reported {
+        patch();
+        if !reported {
             reported = true;
             let base = GetModuleHandleW(core::ptr::null()) as usize;
             let lic = pick_map(base).map(|m| read_u32(base + m.lic)).unwrap_or(0);
-            log(&format!("[+] 28.40 授权与全UI去试用热补丁已生效: license_type={}", lic));
+            log(&format!("[+] 授权与全UI去试用热补丁已生效: license_type={}", lic));
         }
+        // 注意：自定义授权信息(name/key)由部署阶段写入宿主自身配置文件 [Register] 段，
+        // 宿主启动时会原生载入授权全局并在“关于”框显示；运行期改写内存会被宿主覆盖，故不再处理。
         let d = if i < 160 { 50 } else { 500 };
         thread::sleep(Duration::from_millis(d));
     }
@@ -200,6 +212,7 @@ unsafe extern "system" fn worker(_param: *mut c_void) -> u32 {
 #[no_mangle]
 pub unsafe extern "system" fn DllMain(_hinst: Hmod, reason: u32, _res: *mut c_void) -> i32 {
     if reason == 1 {
+        log("[*] version.dll (v2.3.1) DllMain 注入成功");
         // 同步预打一次，确保启动早期第一道逻辑就生效
         patch();
         let mut tid: u32 = 0;
