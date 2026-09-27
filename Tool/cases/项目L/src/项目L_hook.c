@@ -375,6 +375,15 @@ static void StrToUtf8(const QBlob* qs, char* out, int outSize)
     if (str) { strncpy(out, str, outSize - 1); out[outSize-1] = 0; }
 }
 
+static void SetEditUtf8(void* edit, const char* str)
+{
+    QBlob qs;
+    if (!p_setText || !p_fromUtf8 || !edit || !str) return;
+    memset(&qs, 0, sizeof(qs));
+    p_fromUtf8(&qs, str, -1);
+    p_setText(edit, &qs);
+}
+
 // 从面板读回用户填写的自定义大模型接口地址与 Key
 static void SaveFromWidget(void* self)
 {
@@ -610,6 +619,15 @@ static void* CtorHook(void* self, void* a2, void* a3)
         HookLog("ui: [5] inserting at idx=%d", idx);
         p_insert(combo, idx, &icon, &label, &var);
         HookLog("ui: [6] custom item inserted at idx=%d (combo=%p)", idx, combo);
+
+        // 如果用户当前界面选中的是自定义源 (idx=2), 自动把 INI 里的有效配置回显填入输入框!
+        if (p_curIdx && p_curIdx(combo) == CUSTOM_ITEM_IDX) {
+            void* edt = *(void**)((BYTE*)self + OFF_EDT_ID);
+            void* edtKey = *(void**)((BYTE*)self + OFF_EDT_KEY);
+            if (edt && g_llmUrl[0]) SetEditUtf8(edt, g_llmUrl);
+            if (edtKey && g_llmKey[0]) SetEditUtf8(edtKey, g_llmKey);
+            HookLog("ui: initial fields populated from INI (url=%s, key_len=%d)", g_llmUrl, (int)strlen(g_llmKey));
+        }
     }
 
     if (!g_saveTimer) {
