@@ -631,7 +631,7 @@ static void* CtorHook(void* self, void* a2, void* a3)
     }
 
     if (!g_saveTimer) {
-        g_saveTimer = SetTimer(NULL, 0, 1000, SaveTimerProc);
+        // g_saveTimer = SetTimer(NULL, 0, 1000, SaveTimerProc); // 彻底禁用自动覆盖 INI
         HookLog("ui: [9] GUI-thread save timer started (id=%llu)", (unsigned long long)g_saveTimer);
     }
 
@@ -643,7 +643,7 @@ static void* CtorHook(void* self, void* a2, void* a3)
 
 static void* DtorHook(void* self, unsigned int flags)
 {
-    SaveFromWidget(self);
+    // SaveFromWidget(self); // 彻底禁用析构覆盖 INI
     if (g_widget == self) g_widget = NULL;
     g_edtModel = NULL;   /* 子控件随父销毁, 置空防悬挂 */
     if (g_saveTimer) { KillTimer(NULL, g_saveTimer); g_saveTimer = 0; HookLog("ui: save timer stopped"); }
