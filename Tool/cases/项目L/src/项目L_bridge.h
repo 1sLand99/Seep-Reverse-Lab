@@ -14,7 +14,8 @@ typedef struct {
     char llmKey[512];       // 大模型 API Key
     char llmModel[128];     // 可选, 覆盖模型名
     int  llmStyle;          // 0=auto 1=openai 2=gemini 3=anthropic
-    char upstreamHost[128]; // 非翻译请求回源主机 (默认 api.项目L.cn)
+    char upstreamHost[128]; // 非翻译请求回源主机
+    char iniPath[260];      // 配置文件名 (用于每次请求前热重读)
 } BridgeConfig;
 
 // 启动本地网关, 返回监听端口 (>0), 失败返回 0
@@ -22,6 +23,7 @@ int  BridgeStart(const BridgeConfig* cfg);
 void BridgeStop(void);
 int  BridgePort(void);
 void BridgeUpdateConfig(const BridgeConfig* cfg);
+void BridgeSetTimeout(int ms);   // 调整大模型请求超时
 
 // 供 hook.c 调用
 char* llm_translate(const char* text, const char* srcLang, const char* tgtLang,
