@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/angusdevgo/seep-reverse-lab"><img src="https://img.shields.io/badge/Release-v1.2.0-brightgreen.svg?style=for-the-badge&logo=github" alt="Release"></a>
+  <a href="https://github.com/angusdevgo/seep-reverse-lab"><img src="https://img.shields.io/badge/Release-v1.3.0-brightgreen.svg?style=for-the-badge&logo=github" alt="Release"></a>
   <a href="https://github.com/angusdevgo/seep-reverse-lab/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="License"></a>
   <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Android%20%7C%20Linux-0078D6?style=for-the-badge&logo=windows" alt="Platform">
   <img src="https://img.shields.io/badge/Architecture-x86%20%7C%20x64%20%7C%20ARM64-orange?style=for-the-badge" alt="Architecture">
@@ -56,7 +56,7 @@
 | 🔧 **工具链高度碎片化** | 23 个 MCP 工具封装 Radare2/JADX/Apktool/Frida，统一调度，零手动切换 |
 | 🧠 **大模型缺乏决断逻辑** | `softseep` 总控：两级自动判型（平台 × 9 类业务）+ 七道门决策树 |
 | 🛡️ **云端模型频繁拒绝** | 三层保险：底座级 `BLOCK_NONE` 注入 + 动态口语合规转译 + 推理级思维重定向 |
-| 📚 **实战经验无法沉淀** | 289 篇战术实战笔记 + 11 大脱敏工业范式 + "先查知识库再动手"强制纪律 |
+| 📚 **实战经验无法沉淀** | 289 篇战术实战笔记 + 12 大脱敏工业范式 + "先查知识库再动手"强制纪律 |
 | 📦 **环境部署摩擦高昂** | 一键 `install.ps1`，原生适配 Pi Agent / Claude Code / DeepSeek Harness / Codex |
 
 ---
@@ -185,7 +185,7 @@ Seep\ (251 MB)
 │   │   ├── AGENTS.md              ← 跨 Agent 通用指令规范
 │   │   └── extensions\            ← BLOCK_NONE 注入 + 口语合规转译
 │   │
-│   ├── cases\                     ← 11 大脱敏工业案例库（项目 A ~ K，含版本演进归档 v2）
+│   ├── cases\                     ← 12 大脱敏工业案例库（项目 A ~ L，含版本演进归档 v2）
 │   ├── upstream\                  ← apk-reverse 上游开源验证集（MIT）
 │   ├── docs\                      ← 工程参考文档
 │   └── scripts\                   ← 工作流自动化脚本
