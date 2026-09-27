@@ -40,6 +40,8 @@
 
 void HookLog(const char* fmt, ...);   // 由 hook.c 提供
 
+static int g_llmTimeoutMs = 60000;   // 大模型请求超时 (ms)
+
 // ============================================================================
 //  极简 JSON (解析 + 提取)
 // ============================================================================
@@ -542,11 +544,16 @@ char* llm_translate(const char* text, const char* srcLang, const char* tgtLang,
         sb_str(&hdr, "Content-Type: application/json\r\n");
 
         if (style == STYLE_GEMINI) {
-            const char* q = strchr(cleanUrl, '?');
-            if (q) {
-                sprintf(realUrl, "%.*s?%skey=%s", (int)(q - cleanUrl), cleanUrl, q + 1, cfg->llmKey);
+            /* 智能处理 Gemini 端点:
+             * 无论用户输入 https://generativelanguage.googleapis.com
+             * 还是完整带模型名路径, 都自动规范为正确形式 */
+            if (strstr(cleanUrl, ":generateContent")) {
+                const char* q = strchr(cleanUrl, '?');
+                if (q) sprintf(realUrl, "%.*s?%skey=%s", (int)(q - cleanUrl), cleanUrl, q + 1, cfg->llmKey);
+                else   sprintf(realUrl, "%s?key=%s", cleanUrl, cfg->llmKey);
             } else {
-                sprintf(realUrl, "%s?key=%s", cleanUrl, cfg->llmKey);
+                sprintf(realUrl, "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s",
+                        model[0] ? model : "gemini-2.5-flash", cfg->llmKey);
             }
         } else if (style == STYLE_ANTHROPIC) {
             strncpy(realUrl, cleanUrl, sizeof(realUrl) - 1);
@@ -555,7 +562,15 @@ char* llm_translate(const char* text, const char* srcLang, const char* tgtLang,
             sb_str(&hdr, cfg->llmKey);
             sb_str(&hdr, "\r\nanthropic-version: 2023-06-01\r\n");
         } else {
-            strncpy(realUrl, cleanUrl, sizeof(realUrl) - 1);
+            /* OpenAI 兼容格式: 确保以 /chat/completions 结尾 */
+            char compUrl[1024];
+            strncpy(compUrl, cleanUrl, sizeof(compUrl) - 1); compUrl[sizeof(compUrl)-1] = 0;
+            if (!strstr(compUrl, "/chat/completions")) {
+                int clen = (int)strlen(compUrl);
+                while (clen > 0 && compUrl[clen - 1] == '/') compUrl[--clen] = 0;
+                strcat(compUrl, "/v1/chat/completions");
+            }
+            strncpy(realUrl, compUrl, sizeof(realUrl) - 1);
             realUrl[sizeof(realUrl)-1] = 0;
             sb_str(&hdr, "Authorization: Bearer ");
             sb_str(&hdr, cfg->llmKey);
@@ -563,7 +578,7 @@ char* llm_translate(const char* text, const char* srcLang, const char* tgtLang,
         }
 
         HookLog("bridge: -> %s (style=%d model=%s len=%d)", cleanUrl, style, model, (int)strlen(text));
-        if (http_request("POST", realUrl, hdr.p, body.p, (int)strlen(body.p), &resp, 60000)) {
+        if (http_request("POST", realUrl, hdr.p, body.p, (int)strlen(body.p), &resp, g_llmTimeoutMs)) {
             JVal* j = json_parse(resp.data, resp.len);
             HookLog("bridge: <- HTTP %d (%d bytes)", resp.status, resp.len);
             if (j) {
@@ -681,9 +696,22 @@ static void http_reply(SOCKET s, int status, const char* ctype, const char* body
     if (blen > 0) send_all(s, body, blen);
 }
 
+
+// 每次翻译请求前热重读 INI —— 用户直接编辑 项目L_hook.ini 即可即时生效
+static void ReloadFromIni(void)
+{
+    if (!g_cfg.iniPath[0]) return;
+    GetPrivateProfileStringA("translate", "llm_url",   g_cfg.llmUrl,   g_cfg.llmUrl,   sizeof(g_cfg.llmUrl),   g_cfg.iniPath);
+    GetPrivateProfileStringA("translate", "llm_key",   g_cfg.llmKey,   g_cfg.llmKey,   sizeof(g_cfg.llmKey),   g_cfg.iniPath);
+    GetPrivateProfileStringA("translate", "llm_model", g_cfg.llmModel, g_cfg.llmModel, sizeof(g_cfg.llmModel), g_cfg.iniPath);
+    g_cfg.llmStyle = GetPrivateProfileIntA("translate", "llm_style", 0, g_cfg.iniPath);
+}
+
 // ---- 翻译处理 ----
 static void handle_translate(SOCKET s, const char* path, const char* body, int blen) {
-    JVal* req = json_parse(body, blen);
+    JVal* req;
+    ReloadFromIni();
+    req = json_parse(body, blen);
     SBuf out;
     const char* srcLang, *tgtLang, *backupLang;
     char so[32], to[32];
@@ -794,7 +822,8 @@ static void handle_forward(SOCKET s, const char* method, const char* path,
         while (p && *p) {
             const char* e = strstr(p, "\r\n");
             int ln = e ? (int)(e - p) : (int)strlen(p);
-            if (ln > 0 && strncmp(p, "Host:", 5) && strncmp(p, "host:", 5) &&
+            if (ln == 0) break; // 空行即为 HTTP 头部与 Body 的分界线，必须停止！
+            if (strncmp(p, "Host:", 5) && strncmp(p, "host:", 5) &&
                 strncmp(p, "Content-Length:", 15) && strncmp(p, "content-length:", 15) &&
                 strncmp(p, "Connection:", 11) && strncmp(p, "connection:", 11) &&
                 strncmp(p, "Accept-Encoding:", 16) && strncmp(p, "accept-encoding:", 16)) {
@@ -866,8 +895,14 @@ static DWORD WINAPI ConnThread(LPVOID param)
             int blen = len - hdrEnd;
             if (blen < 0) blen = 0;
             if (hp) hp += 2; else hp = hdrs;
+            ReloadFromIni();
+            HookLog("bridge: [HTTP] %s %s (body=%d)", method, path, blen);
             if (strstr(path, "/translate/")) {
-                handle_translate(s, path, body, blen);
+                if (g_cfg.llmUrl[0]) {
+                    handle_translate(s, path, body, blen);
+                } else {
+                    handle_forward(s, method, path, hp, body, blen);
+                }
             } else if (strstr(path, "/healthz")) {
                 http_reply(s, 200, "text/plain", "ok", 2);
             } else {
@@ -954,6 +989,8 @@ void BridgeStop(void)
 }
 
 int BridgePort(void) { return g_port; }
+
+void BridgeSetTimeout(int ms) { if (ms > 1000) g_llmTimeoutMs = ms; }
 
 void BridgeUpdateConfig(const BridgeConfig* cfg)
 {
