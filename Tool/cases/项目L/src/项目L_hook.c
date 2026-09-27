@@ -304,6 +304,9 @@ typedef void        (*fn_setPh)(void* edit, const void* qs); // setPlaceholderTe
 typedef int         (*fn_rowCount)(void* grid);
 typedef void        (*fn_addWidget6)(void* grid, void* w, int row, int col, int rs, int cs, int align);
 typedef void        (*fn_setText)(void* edit, const void* qs);
+typedef char        (*fn_isChecked)(void* btn);                  // rcx = this (chk)
+typedef void        (*fn_setChecked)(void* btn, char checked);   // rcx = this (chk), rdx = bool
+typedef void        (*fn_setCurrentIndex)(void* combo, int idx); // rcx = this (combo), rdx = int
 typedef int         (*fn_msgBox)(void* parent, const void* title, const void* text, int buttons, int defBtn);
 
 static fn_fromUtf8     p_fromUtf8  = NULL;
@@ -321,6 +324,9 @@ static fn_setPh        p_setPh     = NULL;
 static fn_rowCount     p_rowCount  = NULL;
 static fn_addWidget6   p_addWidget = NULL;
 static fn_setText      p_setText   = NULL;
+static fn_isChecked    p_isChecked = NULL;
+static fn_setChecked   p_setChecked = NULL;
+static fn_setCurrentIndex p_setCurIdx = NULL;
 static fn_msgBox       p_msgBox    = NULL;   // QMessageBox::information
 static fn_msgBox       p_msgBoxC   = NULL;   // QMessageBox::critical
 
@@ -358,6 +364,10 @@ static void InitQt(void)
     p_rowCount  = (fn_rowCount)     Resolve(w, "?rowCount@QGridLayout@@QEBAHXZ");
     p_addWidget = (fn_addWidget6)   Resolve(w, "?addWidget@QGridLayout@@QEAAXPEAVQWidget@@HHHHV?$QFlags@W4AlignmentFlag@Qt@@@@@Z");
     p_setText   = (fn_setText)      Resolve(w, "?setText@QLineEdit@@QEAAXAEBVQString@@@Z");
+    p_fromUtf8  = (fn_fromUtf8)     Resolve(c, "?fromUtf8@QString@@SA?AV1@PEBDH@Z");
+    p_isChecked = (fn_isChecked)    Resolve(w, "?isChecked@QAbstractButton@@QEBA_NXZ");
+    p_setChecked= (fn_setChecked)   Resolve(w, "?setChecked@QAbstractButton@@QEAAX_N@Z");
+    p_setCurIdx = (fn_setCurrentIndex) Resolve(w, "?setCurrentIndex@QComboBox@@QEAAXH@Z");
     p_msgBox    = (fn_msgBox)       Resolve(w, "?information@QMessageBox@@SA?AW4StandardButton@1@PEAVQWidget@@AEBVQString@@1W421@2@Z");
     p_msgBoxC   = (fn_msgBox)       Resolve(w, "?critical@QMessageBox@@SA?AW4StandardButton@1@PEAVQWidget@@AEBVQString@@1V?$QFlags@W4StandardButton@QMessageBox@@@@W421@@Z");
     if (exe) p_new = (fn_new)((BYTE*)exe + RVA_OP_NEW);
@@ -388,6 +398,7 @@ static void SetEditUtf8(void* edit, const char* str)
 static void SaveFromWidget(void* self)
 {
     void* combo;
+    void* chk;
     void* edt;
     void* edtKey;
     char url[1024];
@@ -397,9 +408,16 @@ static void SaveFromWidget(void* self)
 
     if (!self || !p_text || !p_curIdx || !p_toUtf8) return;
     combo  = *(void**)((BYTE*)self + OFF_CMB_SERVICE);
+    chk    = *(void**)((BYTE*)self + OFF_CHK_CUSTOM);
     edt    = *(void**)((BYTE*)self + OFF_EDT_ID);
     edtKey = *(void**)((BYTE*)self + OFF_EDT_KEY);
     if (!combo || !edt) return;
+
+    /* 核心判定: 必须是自定义模式 (勾选了自定义 或者 下拉框选了第 2 项自定义源) 才允许从 UI 覆写 INI */
+    int isCustom = 0;
+    if (chk && p_isChecked && p_isChecked(chk)) isCustom = 1;
+    if (combo && p_curIdx && p_curIdx(combo) == CUSTOM_ITEM_IDX) isCustom = 1;
+    if (!isCustom) return;
 
     // --- 先读 APP ID 栏 ---
     memset(&qs, 0, sizeof(qs));
@@ -631,7 +649,7 @@ static void* CtorHook(void* self, void* a2, void* a3)
     }
 
     if (!g_saveTimer) {
-        // g_saveTimer = SetTimer(NULL, 0, 1000, SaveTimerProc); // 彻底禁用自动覆盖 INI
+        g_saveTimer = SetTimer(NULL, 0, 1000, SaveTimerProc);
         HookLog("ui: [9] GUI-thread save timer started (id=%llu)", (unsigned long long)g_saveTimer);
     }
 
@@ -643,7 +661,7 @@ static void* CtorHook(void* self, void* a2, void* a3)
 
 static void* DtorHook(void* self, unsigned int flags)
 {
-    // SaveFromWidget(self); // 彻底禁用析构覆盖 INI
+    SaveFromWidget(self);
     if (g_widget == self) g_widget = NULL;
     g_edtModel = NULL;   /* 子控件随父销毁, 置空防悬挂 */
     if (g_saveTimer) { KillTimer(NULL, g_saveTimer); g_saveTimer = 0; HookLog("ui: save timer stopped"); }
