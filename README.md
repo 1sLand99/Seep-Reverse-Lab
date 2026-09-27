@@ -320,7 +320,7 @@ Deactivate: exit lab
 | **A** | Monolithic offline PE | Scalar return override (`mov eax,1; ret`) |
 | **B** | Multi-process hybrid | Proxy DLL dispatch + 3-tier state persistence (v12.0 → v6.8.1 evolution: single winhttp naked thunk hijack + auto-update blocker) |
 | **C** | Resource template + UI | Bijective bit-permutation decoding + IAT hook on `SetDlgItemTextW` |
-| **D** | Recompile-induced non-uniform shift | **AOB dual-state signature migration** (3 versions) + PE gating + ACL locking |
+| **D** | Recompile-induced non-uniform shift | **AOB dual-state signature migration** (3 versions) + PE gating + ACL locking + **optional-site version adaptation** + **runtime call-stack locating** |
 | **E** | EXECryptor VM arbitration | 2-point Call redirection to memory stubs |
 | **F** | .NET dynamic deobfuscation | Harmony memory dump + 96-bit combined hash keygen |
 | **G** | Self-referential SHA-384 | 5-byte function-entry patch + watchdog persistence |
