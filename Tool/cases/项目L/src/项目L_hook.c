@@ -413,6 +413,10 @@ static void SaveFromWidget(void* self)
     edtKey = *(void**)((BYTE*)self + OFF_EDT_KEY);
     if (!combo || !edt) return;
 
+    int curIdx = p_curIdx ? p_curIdx(combo) : -1;
+    char chkVal = (chk && p_isChecked) ? p_isChecked(chk) : 0;
+    HookLog("ui: SaveFromWidget check: curIdx=%d chk=%d", curIdx, (int)chkVal);
+
     /* 核心判定: 必须是自定义模式 (勾选了自定义 或者 下拉框选了第 2 项自定义源) 才允许从 UI 覆写 INI */
     int isCustom = 0;
     if (chk && p_isChecked && p_isChecked(chk)) isCustom = 1;
@@ -637,14 +641,18 @@ static void* CtorHook(void* self, void* a2, void* a3)
         HookLog("ui: [5] inserting at idx=%d", idx);
         p_insert(combo, idx, &icon, &label, &var);
         HookLog("ui: [6] custom item inserted at idx=%d (combo=%p)", idx, combo);
+        void* chk = *(void**)((BYTE*)self + OFF_CHK_CUSTOM);
+        int curIdx = p_curIdx ? p_curIdx(combo) : -1;
+        char chkVal = (chk && p_isChecked) ? p_isChecked(chk) : 0;
+        HookLog("ui: ctor state: curIdx=%d chkVal=%d", curIdx, (int)chkVal);
 
-        // 如果用户当前界面选中的是自定义源 (idx=2), 自动把 INI 里的有效配置回显填入输入框!
-        if (p_curIdx && p_curIdx(combo) == CUSTOM_ITEM_IDX) {
-            void* edt = *(void**)((BYTE*)self + OFF_EDT_ID);
-            void* edtKey = *(void**)((BYTE*)self + OFF_EDT_KEY);
+        void* edt = *(void**)((BYTE*)self + OFF_EDT_ID);
+        void* edtKey = *(void**)((BYTE*)self + OFF_EDT_KEY);
+        // 如果是自定义源或勾选了自定义，强制回显有效配置！
+        if (curIdx == CUSTOM_ITEM_IDX || chkVal) {
             if (edt && g_llmUrl[0]) SetEditUtf8(edt, g_llmUrl);
             if (edtKey && g_llmKey[0]) SetEditUtf8(edtKey, g_llmKey);
-            HookLog("ui: initial fields populated from INI (url=%s, key_len=%d)", g_llmUrl, (int)strlen(g_llmKey));
+            HookLog("ui: initial fields populated (url=%s, key_len=%d)", g_llmUrl, (int)strlen(g_llmKey));
         }
     }
 
