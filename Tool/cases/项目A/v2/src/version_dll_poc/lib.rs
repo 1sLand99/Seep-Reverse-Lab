@@ -1,14 +1,36 @@
 // ============================================================================
-//  <项目A> 完美授权激活 PoC —— version.dll (DLL 搜索顺序劫持与热补丁引擎)
+//  <项目A> 授权旁路验证 PoC —— version.dll (DLL 搜索顺序劫持 + 授权状态机热补丁)
 //  ---------------------------------------------------------------------------
 //  适配版本：<项目A> 28.40.0100 (twinBASIC 982) & 28.30.2600 (x64)
 //
-//  核心技术成果：
-//   1. 进程内授权状态全局写入: license_type = 5 (Lifetime), ver_flag = 1
-//   2. 标题栏格式化引擎短路: 0x859AE7 强制跳过 '### 30-Day Trial Version ###'
-//   3. 试用文案生成点消解: 0x64699D 与 0x646AD3 消除试用天数与非免费提醒模板
-//   4. 关于框许可证判定跳转: 0x15E2A47 直接短路切入 'Lifetime License' 呈现分支
-//   5. 导出并转发系统原版 version.dll 全部 17 个接口，保障宿主基础功能不受损
+//  ★ 授权模型测绘结论（关键）：
+//    宿主存在两级授权变量，二者解耦：
+//      · license_type (int) —— 仅表示注册码前缀分类 xy01..xy05 → 1..5；
+//        由 [Register] Code= 前缀直接决定，**不构成激活判据**。
+//      · 授权状态字 (word) —— 真正的激活开关：
+//            0xFFFF = 试用 / 0x0000 = 已激活
+//        其值在启动时由 `状态字 = NOT(注册加载返回值)` 计算得出（-1 通过 → 0）。
+//    ⇒ 仅写入 license_type=5 只会让「关于」框显示授权信息，
+//      标题栏与试用弹窗链路依旧走试用分支（这正是旧版方案的失效根因）。
+//
+//  ★ 本 PoC 的解法（4 处确定性指令级热补丁，无需伪造注册码签名）：
+//    1. `not eax` → `xor eax,eax`   —— 令激活判定恒返回 0x0000(已激活)
+//    2. 前置检查失败分支的 `mov word [rax],0xFFFF` → 写入 0
+//    3. 注册信息为空分支的 `mov word [rax],0xFFFF` → 写入 0
+//    4. 「关于」框许可等级分支无条件进入 Lifetime License
+//    ⇒ 授权状态字恒为 0，宿主自身以「正式授权」姿态渲染全部 UI
+//      （标题栏、启动欢迎链路、试用弹窗均无需任何 UI 化妆品补丁）
+//
+//  ★ 密钥结构（供部署阶段写入 [Register] Code=）：
+//      xy05-<用户数>-<4hex>×5-<重复段>-<版本段>
+//      例：xy05-0100-079F-3AAE-9F8F-6729-51A9-079F-28.40
+//      · 第 2 段 4 位十六进制 = 授权用户数（0100 → 1 用户）
+//      · 第 9 段 = 版本段，需与宿主主次版本一致（28.40 / 28.30）
+//
+//  ★ 自定义授权信息（姓名/密钥）由部署阶段写入宿主配置 [Register] 段，
+//    宿主原生载入并显示，无需运行期改写内存。
+//
+//  ★ 导出并转发系统原版 version.dll 全部 17 个接口，保障宿主基础功能不受损。
 // ============================================================================
 #![allow(non_snake_case, non_camel_case_types, non_upper_case_globals)]
 
@@ -43,51 +65,34 @@ struct Map {
     size_of_image: u32,
     lic: usize,
     flag: usize,
-    name_g: usize,
-    code1_g: usize,
-    code2_g: usize,
+    act: usize,          // ★ 授权状态字（word）: 0xFFFF=试用 / 0x0000=已激活
+    #[allow(dead_code)] name_g: usize,
+    #[allow(dead_code)] code1_g: usize,
+    #[allow(dead_code)] code2_g: usize,
     code_patches: &'static [CodePatch],
 }
 
-// 28.40 专属代码短路热补丁
+// ── 28.40.0100 授权状态判定引擎热补丁（真·激活）──────────────────────────
 static PATCHES_2840: [CodePatch; 4] = [
-    // 1. 标题栏格式化引擎短路: 跳过 ### 30-Day Trial Version - Day 1 ###
-    CodePatch {
-        rva: 0x859AE7,
-        bytes: &[0xE9, 0x38, 0x06, 0x00, 0x00, 0x90],
-    },
-    // 2. 消解 271 号试用文案模板 (<#>-Day Trial Version...)
-    CodePatch {
-        rva: 0x64699D,
-        bytes: &[0x6A, 0x00, 0x4C, 0x8D, 0x1D, 0x61, 0xD8, 0xB6, 0x01],
-    },
-    // 3. 消解非免费评估文案模板 (<$app> is not freeware...)
-    CodePatch {
-        rva: 0x646AD3,
-        bytes: &[0x6A, 0x00, 0x90, 0x90, 0x90, 0x4C, 0x8D, 0x1D, 0x2E, 0xD7, 0xB6, 0x01],
-    },
-    // 4. 关于框短路进入 'Lifetime License' 文本呈现
-    CodePatch {
-        rva: 0x15E2A47,
-        bytes: &[0xE9, 0x40, 0x00, 0x00, 0x00],
-    },
+    // 1. 激活判定取反指令消解：not eax -> xor eax,eax
+    //    原语义 状态字 = NOT(注册加载返回值)：-1(通过) → 0x0000(已激活)
+    //    补丁后恒为 0x0000，等价于「注册加载永远通过」
+    CodePatch { rva: 0x670CB1, bytes: &[0x31, 0xC0] },
+    // 2. 前置检查失败分支的试用标记写入 → 改写为 0x0000
+    CodePatch { rva: 0x670BFF, bytes: &[0x66, 0xC7, 0x00, 0x00, 0x00] },
+    // 3. 注册信息为空分支的试用标记写入 → 改写为 0x0000
+    CodePatch { rva: 0x670CD5, bytes: &[0x66, 0xC7, 0x00, 0x00, 0x00] },
+    // 4. 「关于」框许可等级呈现：无条件进入 Lifetime License 分支
+    //    （等级枚举由注册码内嵌签名解码得出，无法离线伪造 → 直接锁定呈现分支）
+    CodePatch { rva: 0x15E2A47, bytes: &[0xE9, 0x40, 0x00, 0x00, 0x00] },
 ];
 
-// 28.30 专属代码热补丁
-static PATCHES_2830: [CodePatch; 2] = [
-    CodePatch {
-        rva: 0x66FC95,
-        bytes: &[
-            0x66, 0xC7, 0x05, 0xAC, 0x46, 0xC8, 0x01, 0x00, 0x00,
-            0xC7, 0x05, 0x9C, 0x90, 0xC7, 0x01, 0x00, 0x00, 0x00, 0x00,
-            0xC7, 0x05, 0xAA, 0x50, 0xC7, 0x01, 0x05, 0x00, 0x00, 0x00,
-            0xE9, 0xF0, 0x00, 0x00, 0x00
-        ],
-    },
-    CodePatch {
-        rva: 0x66DB7B,
-        bytes: &[0x66, 0xB8, 0xFF, 0xFF, 0x90],
-    },
+// ── 28.30.2600 同源热补丁（激活判定指令序列与 28.40 完全同构，偏移差 -0x1039）──
+static PATCHES_2830: [CodePatch; 4] = [
+    CodePatch { rva: 0x66FC6A, bytes: &[0x31, 0xC0] },
+    CodePatch { rva: 0x66FBB8, bytes: &[0x66, 0xC7, 0x00, 0x00, 0x00] },
+    CodePatch { rva: 0x66FC8E, bytes: &[0x66, 0xC7, 0x00, 0x00, 0x00] },
+    CodePatch { rva: 0x15CEA84, bytes: &[0xE9, 0x40, 0x00, 0x00, 0x00] },
 ];
 
 static MAPS: [Map; 2] = [
@@ -95,6 +100,7 @@ static MAPS: [Map; 2] = [
         size_of_image: 0x0285_0000,
         lic: 0x22FD724,
         flag: 0x230170C,
+        act: 0x230CDEA,
         name_g: 0x2235A88,
         code1_g: 0x2281C70,
         code2_g: 0x21FDDE0,
@@ -104,6 +110,7 @@ static MAPS: [Map; 2] = [
         size_of_image: 0x0283_B000,
         lic: 0x22E4D5C,
         flag: 0x22E8D44,
+        act: 0x22F434A,
         name_g: 0x221CEF8,
         code1_g: 0x22694A0,
         code2_g: 0x21E52F0,
@@ -192,27 +199,33 @@ unsafe fn patch() -> bool {
 }
 
 unsafe extern "system" fn worker(_param: *mut c_void) -> u32 {
-    let mut reported = false;
-    for i in 0..2400 {
+    let base = GetModuleHandleW(core::ptr::null()) as usize;
+    let m = match pick_map(base) { Some(m) => m, None => return 0 };
+
+    // 阶段一：覆盖宿主启动初始化窗口（短时高频抢占，仅用于兜底无 [Register] 配置的场景）
+    for _ in 0..160 {
         patch();
-        if !reported {
-            reported = true;
-            let base = GetModuleHandleW(core::ptr::null()) as usize;
-            let lic = pick_map(base).map(|m| read_u32(base + m.lic)).unwrap_or(0);
-            log(&format!("[+] 授权与全UI去试用热补丁已生效: license_type={}", lic));
-        }
-        // 注意：自定义授权信息(name/key)由部署阶段写入宿主自身配置文件 [Register] 段，
-        // 宿主启动时会原生载入授权全局并在“关于”框显示；运行期改写内存会被宿主覆盖，故不再处理。
-        let d = if i < 160 { 50 } else { 500 };
-        thread::sleep(Duration::from_millis(d));
+        thread::sleep(Duration::from_millis(50));
     }
+    // 阶段二：有界维持 8 秒后退出（不常驻线程，零后台开销）
+    for _ in 0..16 {
+        patch();
+        thread::sleep(Duration::from_millis(500));
+    }
+
+    let lic = read_u32(base + m.lic);
+    let act = core::ptr::read_unaligned((base + m.act) as *const u16);
+    log(&format!(
+        "[+] 授权状态机热补丁已生效: license_type={} | 授权状态字=0x{:04X} ({})",
+        lic, act, if act == 0 { "已激活" } else { "试用" }
+    ));
     0
 }
 
 #[no_mangle]
 pub unsafe extern "system" fn DllMain(_hinst: Hmod, reason: u32, _res: *mut c_void) -> i32 {
     if reason == 1 {
-        log("[*] version.dll (v2.3.1) DllMain 注入成功");
+        log("[*] version.dll (v2.4.0) DllMain 注入成功");
         // 同步预打一次，确保启动早期第一道逻辑就生效
         patch();
         let mut tid: u32 = 0;
