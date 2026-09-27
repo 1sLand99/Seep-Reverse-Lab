@@ -32,7 +32,9 @@
 #define RVA_VTABLE      0x0CE8228u   // ConfWidgetTranslateKey vtable
 #define VTABLE_DTOR_IDX 3
 
-/* 默认回退端点 = 官方 API (中性占位) */
+/* 默认回退端点 = 官方 API (中性占位)
+   自定义大模型源由用户在 项目L 设置界面或 项目L_hook.ini 中填写,
+   本 DLL 不含任何私有服务地址 */
 #define DEFAULT_ENDPOINT "https://api.项目L.cn"
 
 // 控件偏移 (ui 结构体位于 widget+0x60)
@@ -109,6 +111,7 @@ static void BuildBridgeCfg(BridgeConfig* bc)
     strncpy(bc->llmModel, g_llmModel, sizeof(bc->llmModel) - 1);
     bc->llmStyle = g_llmStyle;
     strcpy(bc->upstreamHost, "api.项目L.cn");
+    strncpy(bc->iniPath, g_iniPath, sizeof(bc->iniPath) - 1);
 }
 
 // ---------------------------------------------------------------- 日志
@@ -281,7 +284,10 @@ static void PatchNoCloud(void)
 // ---------------------------------------------------------------- 3. Qt 接口
 // QString / QByteArray / QVariant / QIcon 均为 8~16 字节的非平凡类型,
 // 统一用 32 字节缓冲兜底 (x64 MSVC ABI: 隐藏返回指针在 rcx)
-typedef struct { unsigned char b[32]; } QBlob;
+/* ★ 必须 16 字节对齐: Qt 的 QString/QVariant/QByteArray/QIcon 均为
+   指针型非平凡对象, 要求 8 字节对齐; 若结构体对齐为 1 字节,
+   传入未对齐引用会被 Qt 按错位数据解析 (表现为 UTF-8 被当 Latin-1 的乱码) */
+typedef struct { unsigned char b[32]; } __attribute__((aligned(16))) QBlob;
 
 typedef void        (*fn_fromUtf8)(void* ret, const char* s, int len);
 typedef void        (*fn_variantCtor)(void* var, const void* qs);
@@ -289,9 +295,16 @@ typedef void        (*fn_iconCtor)(void* icon);
 typedef int         (*fn_count)(void* combo);
 typedef void        (*fn_insertItem)(void* combo, int idx, const void* icon, const void* label, const void* var);
 typedef int         (*fn_currentIndex)(void* combo);
-typedef void        (*fn_text)(void* ret, void* edit);
-typedef void        (*fn_toUtf8)(void* ret, const void* qs);
+typedef void*       (*fn_text)(void* edit, void* retSlot);       // rcx = this (edit), rdx = retSlot
+typedef void*       (*fn_toUtf8)(const void* qs, void* retSlot); // rcx = this (qs), rdx = retSlot
 typedef const char* (*fn_constData)(void* ba);
+typedef void*       (*fn_new)(unsigned long long size);      // 项目L 内部 operator new
+typedef void        (*fn_leCtor)(void* self, void* parent);  // QLineEdit::QLineEdit(QWidget*)
+typedef void        (*fn_setPh)(void* edit, const void* qs); // setPlaceholderText
+typedef int         (*fn_rowCount)(void* grid);
+typedef void        (*fn_addWidget6)(void* grid, void* w, int row, int col, int rs, int cs, int align);
+typedef void        (*fn_setText)(void* edit, const void* qs);
+typedef int         (*fn_msgBox)(void* parent, const void* title, const void* text, int buttons, int defBtn);
 
 static fn_fromUtf8     p_fromUtf8  = NULL;
 static fn_variantCtor  p_varCtor   = NULL;
@@ -302,8 +315,20 @@ static fn_currentIndex p_curIdx    = NULL;
 static fn_text         p_text      = NULL;
 static fn_toUtf8       p_toUtf8    = NULL;
 static fn_constData    p_constData = NULL;
+static fn_new          p_new       = NULL;
+static fn_leCtor       p_leCtor    = NULL;
+static fn_setPh        p_setPh     = NULL;
+static fn_rowCount     p_rowCount  = NULL;
+static fn_addWidget6   p_addWidget = NULL;
+static fn_setText      p_setText   = NULL;
+static fn_msgBox       p_msgBox    = NULL;   // QMessageBox::information
+static fn_msgBox       p_msgBoxC   = NULL;   // QMessageBox::critical
 
-static void* g_widget = NULL;
+#define RVA_OP_NEW  0x0C73CBCu   // 项目L 内部 operator new (全程序 3910 处调用)
+#define SZ_LINEEDIT 0x30         // sizeof(QLineEdit) 实测
+
+static void* g_widget   = NULL;
+static void* g_edtModel = NULL;   /* 预留: 模型输入框 (当前版本不注入, 改用 URL/INI 配置) */
 
 static FARPROC Resolve(HMODULE m, const char* n)
 {
@@ -317,6 +342,7 @@ static void InitQt(void)
     HMODULE w = GetModuleHandleA("Qt5Widgets.dll");
     HMODULE c = GetModuleHandleA("Qt5Core.dll");
     HMODULE g = GetModuleHandleA("Qt5Gui.dll");
+    HMODULE exe = GetModuleHandleW(NULL);
     if (!w || !c) { HookLog("qt: dll not loaded (w=%p c=%p)", w, c); return; }
     p_fromUtf8  = (fn_fromUtf8)     Resolve(c, "?fromUtf8@QString@@SA?AV1@PEBDH@Z");
     p_varCtor   = (fn_variantCtor)  Resolve(c, "??0QVariant@@QEAA@AEBVQString@@@Z");
@@ -327,18 +353,26 @@ static void InitQt(void)
     p_insert    = (fn_insertItem)   Resolve(w, "?insertItem@QComboBox@@QEAAXHAEBVQIcon@@AEBVQString@@AEBVQVariant@@@Z");
     p_curIdx    = (fn_currentIndex) Resolve(w, "?currentIndex@QComboBox@@QEBAHXZ");
     p_text      = (fn_text)         Resolve(w, "?text@QLineEdit@@QEBA?AVQString@@XZ");
+    p_leCtor    = (fn_leCtor)       Resolve(w, "??0QLineEdit@@QEAA@PEAVQWidget@@@Z");
+    p_setPh     = (fn_setPh)        Resolve(w, "?setPlaceholderText@QLineEdit@@QEAAXAEBVQString@@@Z");
+    p_rowCount  = (fn_rowCount)     Resolve(w, "?rowCount@QGridLayout@@QEBAHXZ");
+    p_addWidget = (fn_addWidget6)   Resolve(w, "?addWidget@QGridLayout@@QEAAXPEAVQWidget@@HHHHV?$QFlags@W4AlignmentFlag@Qt@@@@@Z");
+    p_setText   = (fn_setText)      Resolve(w, "?setText@QLineEdit@@QEAAXAEBVQString@@@Z");
+    p_msgBox    = (fn_msgBox)       Resolve(w, "?information@QMessageBox@@SA?AW4StandardButton@1@PEAVQWidget@@AEBVQString@@1W421@2@Z");
+    p_msgBoxC   = (fn_msgBox)       Resolve(w, "?critical@QMessageBox@@SA?AW4StandardButton@1@PEAVQWidget@@AEBVQString@@1V?$QFlags@W4StandardButton@QMessageBox@@@@W421@@Z");
+    if (exe) p_new = (fn_new)((BYTE*)exe + RVA_OP_NEW);
 }
 
 static void StrToUtf8(const QBlob* qs, char* out, int outSize)
 {
     QBlob ba;
-    const char* s;
+    const char* str;
     out[0] = 0;
-    if (!p_toUtf8 || !p_constData) return;
+    if (!p_toUtf8 || !p_constData || !qs) return;
     memset(&ba, 0, sizeof(ba));
-    p_toUtf8(&ba, qs);
-    s = p_constData(&ba);
-    if (s) { strncpy(out, s, outSize - 1); out[outSize-1] = 0; }
+    p_toUtf8(qs, &ba);   /* rcx = this (qs), rdx = retSlot (&ba) */
+    str = p_constData(&ba);
+    if (str) { strncpy(out, str, outSize - 1); out[outSize-1] = 0; }
 }
 
 // 从面板读回用户填写的自定义大模型接口地址与 Key
@@ -357,13 +391,50 @@ static void SaveFromWidget(void* self)
     edt    = *(void**)((BYTE*)self + OFF_EDT_ID);
     edtKey = *(void**)((BYTE*)self + OFF_EDT_KEY);
     if (!combo || !edt) return;
-    if (p_curIdx(combo) != CUSTOM_ITEM_IDX) return;   // 仅自定义项生效
 
-    // --- 接口地址 (APP ID 栏) ---
+    // --- 先读 APP ID 栏 ---
     memset(&qs, 0, sizeof(qs));
-    p_text(&qs, edt);
+    p_text(edt, &qs);
     StrToUtf8(&qs, url, sizeof(url));
     Trim(url);
+
+    // 支持在 URL 后空格直接跟模型名, 或用 ?model= 指定
+    {
+        char* sp = strchr(url, ' ');
+        if (sp) {
+            *sp = 0;
+            char* m = sp + 1;
+            while (*m == ' ') m++;
+            Trim(m);
+            if (*m && strcmp(m, g_llmModel) != 0) {
+                strncpy(g_llmModel, m, sizeof(g_llmModel) - 1);
+                g_llmModel[sizeof(g_llmModel) - 1] = 0;
+                WritePrivateProfileStringA("translate", "llm_model", g_llmModel, g_iniPath);
+                HookLog("ui: llm_model from url space -> %s", g_llmModel);
+                changed = 1;
+            }
+        }
+        const char* mp = strstr(url, "model=");
+        if (mp) {
+            char mbuf[128]; int mi = 0;
+            mp += 6;
+            while (*mp && *mp != '&' && *mp != ' ' && mi < 127) mbuf[mi++] = *mp++;
+            mbuf[mi] = 0;
+            if (mbuf[0] && strcmp(mbuf, g_llmModel) != 0) {
+                strncpy(g_llmModel, mbuf, sizeof(g_llmModel) - 1);
+                g_llmModel[sizeof(g_llmModel) - 1] = 0;
+                WritePrivateProfileStringA("translate", "llm_model", g_llmModel, g_iniPath);
+                HookLog("ui: llm_model from ?model= -> %s", g_llmModel);
+                changed = 1;
+            }
+        }
+    }
+
+    {
+        int isUrl = (strncmp(url, "http://", 7) == 0 || strncmp(url, "https://", 8) == 0);
+        int isCustom = (p_curIdx(combo) == CUSTOM_ITEM_IDX);
+        if (!isUrl && !isCustom) return;
+    }
     if (url[0] && (strncmp(url, "http://", 7) == 0 || strncmp(url, "https://", 8) == 0)
         && strcmp(url, g_llmUrl) != 0) {
         strncpy(g_llmUrl, url, sizeof(g_llmUrl) - 1);
@@ -376,14 +447,49 @@ static void SaveFromWidget(void* self)
     // --- API Key (密钥 栏) ---
     if (edtKey) {
         memset(&qs, 0, sizeof(qs));
-        p_text(&qs, edtKey);
+        p_text(edtKey, &qs);
         StrToUtf8(&qs, key, sizeof(key));
         Trim(key);
+        // 支持在 Key 后附带 #模型名 或 |模型名: 如 sk-xxxx#gemini-2.5-flash
+        {
+            char* sep = strchr(key, '#');
+            if (!sep) sep = strchr(key, '|');
+            if (sep) {
+                *sep = 0;
+                char* m = sep + 1;
+                while (*m == ' ') m++;
+                Trim(m);
+                Trim(key);
+                if (*m && strcmp(m, g_llmModel) != 0) {
+                    strncpy(g_llmModel, m, sizeof(g_llmModel) - 1);
+                    g_llmModel[sizeof(g_llmModel) - 1] = 0;
+                    WritePrivateProfileStringA("translate", "llm_model", g_llmModel, g_iniPath);
+                    HookLog("ui: llm_model from key separator -> %s", g_llmModel);
+                    changed = 1;
+                }
+            }
+        }
         if (key[0] && strcmp(key, g_llmKey) != 0) {
             strncpy(g_llmKey, key, sizeof(g_llmKey) - 1);
             g_llmKey[sizeof(g_llmKey) - 1] = 0;
             WritePrivateProfileStringA("translate", "llm_key", g_llmKey, g_iniPath);
             HookLog("ui: llm_key saved (len=%d)", (int)strlen(g_llmKey));
+            changed = 1;
+        }
+    }
+
+    // --- 模型名 (小π注入的第三个输入框) ---
+    if (g_edtModel && p_text) {
+        char model[128];
+        memset(&qs, 0, sizeof(qs));
+        p_text(g_edtModel, &qs);
+        StrToUtf8(&qs, model, sizeof(model));
+        Trim(model);
+        if (strcmp(model, g_llmModel) != 0) {
+            strncpy(g_llmModel, model, sizeof(g_llmModel) - 1);
+            g_llmModel[sizeof(g_llmModel) - 1] = 0;
+            WritePrivateProfileStringA("translate", "llm_model", g_llmModel, g_iniPath);
+            HookLog("ui: llm_model saved -> %s", g_llmModel[0] ? g_llmModel : "<auto>");
             changed = 1;
         }
     }
@@ -409,6 +515,16 @@ static void SaveFromWidget(void* self)
     } else {
         PatchTranslateEndpoint(g_endpoint);
     }
+}
+
+// ---------------------------------------------------------------- 4.6 GUI 线程定时保存
+// SetTimer(NULL,...) 的回调在拥有消息循环的线程上执行, 即 Qt 主线程 —— 可安全读取控件。
+static UINT_PTR g_saveTimer = 0;
+
+static void CALLBACK SaveTimerProc(HWND hwnd, UINT msg, UINT_PTR id, DWORD tick)
+{
+    (void)hwnd; (void)msg; (void)id; (void)tick;
+    if (g_widget) SaveFromWidget(g_widget);
 }
 
 // ---------------------------------------------------------------- 4. Hook 安装
@@ -495,15 +611,27 @@ static void* CtorHook(void* self, void* a2, void* a3)
         p_insert(combo, idx, &icon, &label, &var);
         HookLog("ui: [6] custom item inserted at idx=%d (combo=%p)", idx, combo);
     }
+
+    if (!g_saveTimer) {
+        g_saveTimer = SetTimer(NULL, 0, 1000, SaveTimerProc);
+        HookLog("ui: [9] GUI-thread save timer started (id=%llu)", (unsigned long long)g_saveTimer);
+    }
+
+
+
     return self;                 // <-- 保留构造函数返回值 rax = this
 }
+
 
 static void* DtorHook(void* self, unsigned int flags)
 {
     SaveFromWidget(self);
     if (g_widget == self) g_widget = NULL;
+    g_edtModel = NULL;   /* 子控件随父销毁, 置空防悬挂 */
+    if (g_saveTimer) { KillTimer(NULL, g_saveTimer); g_saveTimer = 0; HookLog("ui: save timer stopped"); }
     return g_dtorOrig(self, flags);
 }
+
 
 static void InstallHooks(void)
 {
@@ -581,8 +709,8 @@ static DWORD WINAPI InitThread(LPVOID param)
     if (g_optVip) PatchVip(GetModuleHandleA("项目L_AuthReal.dll"));
     if (g_optNoCloud) PatchNoCloud();
 
-    /* ---- 优先启动内嵌大模型网关 ---- */
-    if (g_optBridge && g_llmUrl[0]) {
+    /* ---- 优先启动内嵌大模型网关 (总是监听, 便于随时热切换) ---- */
+    if (g_optBridge) {
         BridgeConfig bc;
         int port;
         BuildBridgeCfg(&bc);
