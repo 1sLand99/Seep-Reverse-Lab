@@ -188,7 +188,7 @@ Seep\ (251 MB)
 │   │   ├── AGENTS.md              ← Cross-agent portable instructions
 │   │   └── extensions\            ← BLOCK_NONE injection + terminology mapping
 │   │
-│   ├── cases\                     ← 12 desensitized industrial paradigm projects (A ~ L, incl. version-evolution archive v2)
+│   ├── cases\                     ← 13 desensitized industrial paradigm projects (A ~ M, incl. version-evolution archive v2)
 │   ├── upstream\                  ← apk-reverse offline verification test suite (MIT)
 │   ├── docs\                      ← Engineering reference docs
 │   └── scripts\                   ← Workspace automation scripts
@@ -313,7 +313,7 @@ Deactivate: exit lab
 
 **Authority Attribution**: Airplane mode + loopback hijacking + timestamp offset testing to classify gates as server-authoritative vs. local-boolean within minutes.
 
-**Nine Industrial Paradigms** — all fully desensitized:
+**Thirteen Industrial Paradigms** — all fully desensitized:
 
 | Project | Architecture | Key Technique |
 |---|---|---|
@@ -326,6 +326,10 @@ Deactivate: exit lab
 | **G** | Self-referential SHA-384 | 5-byte function-entry patch + watchdog persistence |
 | **H** | Ed25519 pubkey replacement | In-place ciphertext replacement via derived keystream |
 | **I** | Weak-modulus RSA | Sliding-window bypass + activation injection on export entry |
+| **J** | Online Card/Key Authorization | Protocol decryption + memory patching + local credential spoofing |
+| **K** | .NET WPF + Themida Packing | Memory dump unpacking + privilege decision branching + registry state freeze |
+| **L** | Qt5 C++ Client | Proxy DLL hook + 11 privilege decision constant-folds + local LLM translation gateway |
+| **M** | Java + install4j Dual-Layer | DLL search-order hijack (version.dll IAT hook) + JVM native ClassFile bytecode patching (burp.Zfqu / burp.Zwxg.Zu) + license/AI token preference seeding |
 
 ### 2. Android & DEX/SO Analysis
 - Surgical DEX same-length patching with automated Adler-32 / SHA-1 recalculation

@@ -185,7 +185,7 @@ Seep\ (251 MB)
 │   │   ├── AGENTS.md              ← 跨 Agent 通用指令规范
 │   │   └── extensions\            ← BLOCK_NONE 注入 + 口语合规转译
 │   │
-│   ├── cases\                     ← 12 大脱敏工业案例库（项目 A ~ L，含版本演进归档 v2）
+│   ├── cases\                     ← 13 大脱敏工业案例库（项目 A ~ M，含版本演进归档 v2）
 │   ├── upstream\                  ← apk-reverse 上游开源验证集（MIT）
 │   ├── docs\                      ← 工程参考文档
 │   └── scripts\                   ← 工作流自动化脚本
@@ -308,7 +308,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 
 **权威归属定性**：断网 + 回环劫持 + 时间戳伪造，分钟级判定本地布尔 vs 服务端权威。
 
-**九大工业级脱敏范式**：
+**十三大工业级脱敏范式**：
 
 | 项目 | 架构类型 | 核心技法 |
 |---|---|---|
@@ -321,6 +321,10 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 | **G** | 自引用 SHA-384 | 5 字节函数入口补丁 + 启动项守护 |
 | **H** | Ed25519 公钥替换 | 密码流推导内置公钥密文替换 |
 | **I** | 弱模 RSA 验签 | CNG 分析 + 滑动窗口旁路 + 导出接口注入 |
+| **J** | 在线卡密 + 网络通信 | 协议解密 + 内存补丁 + 本地凭证伪造 |
+| **K** | .NET WPF + Themida 加固 | 内存转储脱壳 + 特权决策分支走查 + 注册表状态固化 |
+| **L** | Qt5 C++ 客户端 | 代理 DLL Hook + 11 处特权决策常数折叠 + 翻译端点本地 LLM 网关重写 |
+| **M** | Java + install4j 双层架构 | DLL 搜索顺序劫持 (version.dll IAT Hook) + JVM 原生 ClassFile 字节码插桩 (burp.Zfqu / burp.Zwxg.Zu) + 授权状态/AI Token 偏好播种 |
 
 ### 2. Android 移动安全与 DEX/SO 逆向
 - 等长字节 DEX 微创修补，自动重算 Adler-32 / SHA-1
