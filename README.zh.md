@@ -39,8 +39,10 @@
 
 ---
 
-> 🔗 **致敬与参考源**：
-> - 移动端逆向工程参考自：[**newliver666/apk-reverse**](https://github.com/newliver666/apk-reverse)。
+> 🔗 **致敬与开源参考源**：
+> - 移动端逆向工程与门禁验证套件源自：[**newliver666/apk-reverse**](https://github.com/newliver666/apk-reverse)（MIT License）。
+> - 安全研究实验室框架、Zero-Waste Recon 信号路由与提效体系源自：[**GeniusHu-tgty/Open-tgtylab**](https://github.com/GeniusHu-tgty/Open-tgtylab)（GPL-3.0 License）。
+> - 逆向工程攻防知识库、攻击网拓扑与 MCP 自动化工具生态源自：[**LING71671/open-reverselab**](https://github.com/LING71671/open-reverselab)（GPL-3.0 License）。
 > - 社区支持与技术讨论：[**LINUX DO**](https://linux.do/)。
 
 ---
@@ -186,7 +188,10 @@ Seep\ (251 MB)
 │   │   └── extensions\            ← BLOCK_NONE 注入 + 口语合规转译
 │   │
 │   ├── cases\                     ← 13 大脱敏工业案例库（项目 A ~ M，含版本演进归档 v2）
-│   ├── upstream\                  ← apk-reverse 上游开源验证集（MIT）
+│   ├── upstream\                  ← 上游溯源验证层（3大开源项目完整镜像）
+│   │   ├── apk-reverse\           ← newliver666/apk-reverse（Android 逆向与离线测试集）
+│   │   ├── open-tgtylab\          ← GeniusHu-tgty/Open-tgtylab（攻防流水线与提效路由）
+│   │   └── open-reverselab\       ← LING71671/open-reverselab（知识库、boards与工具生态）
 │   ├── docs\                      ← 工程参考文档
 │   └── scripts\                   ← 工作流自动化脚本
 │

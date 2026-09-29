@@ -87,7 +87,11 @@ Test-CheckItem "架构" "十大脱敏案例工程 (Tool/cases/)" {
     $cases = Join-Path $ToolDir 'cases'
     (Test-Path $cases) -and ((Get-ChildItem $cases -Directory).Count -ge 10)
 } "检查 10 个项目案例目录是否存在"
-Test-CheckItem "架构" "上游开源验证集 (Tool/upstream/)" { Test-Path (Join-Path $ToolDir 'upstream\apk-reverse') } "检查 apk-reverse 上游工程目录"
+Test-CheckItem "架构" "上游开源验证集 (Tool/upstream/ 3大开源项目)" { 
+    (Test-Path (Join-Path $ToolDir 'upstream\apk-reverse')) -and
+    (Test-Path (Join-Path $ToolDir 'upstream\open-tgtylab')) -and
+    (Test-Path (Join-Path $ToolDir 'upstream\open-reverselab'))
+} "检查 apk-reverse, open-tgtylab, open-reverselab 上游工程目录是否完备"
 Test-CheckItem "架构" "MCP专用运行时强约定 (Tool/mcp/Tool/)" { Test-Path (Join-Path $ToolDir 'mcp\Tool') } "严禁重命名或搬移 Tool/mcp/Tool 目录"
 
 # -----------------------------------------------------------------------------

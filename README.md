@@ -40,7 +40,9 @@
 ---
 
 > 🔗 **Attribution & Reference Sources**:
-> - Mobile reverse engineering methodology referenced from: [**newliver666/apk-reverse**](https://github.com/newliver666/apk-reverse).
+> - Mobile reverse engineering methodology & verification test suite referenced from: [**newliver666/apk-reverse**](https://github.com/newliver666/apk-reverse) (MIT License).
+> - Security research lab framework, Zero-Waste Recon signal routing & agent execution protocols referenced from: [**GeniusHu-tgty/Open-tgtylab**](https://github.com/GeniusHu-tgty/Open-tgtylab) (GPL-3.0 License).
+> - Reverse engineering knowledge base, attack graph boards & MCP automation ecosystem referenced from: [**LING71671/open-reverselab**](https://github.com/LING71671/open-reverselab) (GPL-3.0 License).
 > - Community support & technical discussions: [**LINUX DO**](https://linux.do/).
 
 ---
@@ -189,7 +191,10 @@ Seep\ (251 MB)
 │   │   └── extensions\            ← BLOCK_NONE injection + terminology mapping
 │   │
 │   ├── cases\                     ← 13 desensitized industrial paradigm projects (A ~ M, incl. version-evolution archive v2)
-│   ├── upstream\                  ← apk-reverse offline verification test suite (MIT)
+│   ├── upstream\                  ← Upstream verification & attribution layer (3 Full mirrors)
+│   │   ├── apk-reverse\           ← newliver666/apk-reverse (Android RE & offline test suite)
+│   │   ├── open-tgtylab\          ← GeniusHu-tgty/Open-tgtylab (Security lab framework & workflows)
+│   │   └── open-reverselab\       ← LING71671/open-reverselab (Knowledge base, boards & MCP ecosystem)
 │   ├── docs\                      ← Engineering reference docs
 │   └── scripts\                   ← Workspace automation scripts
 │
