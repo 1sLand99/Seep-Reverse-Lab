@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Extract compact, resumable security-research checkpoints from Codex JSONL sessions."""
 from __future__ import annotations
 import argparse, hashlib, json, re, shutil

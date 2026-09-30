@@ -1,4 +1,4 @@
-﻿import json
+import json
 from pathlib import Path
 from scripts.misc.codex_security_checkpoint import CodexSessionAdapter, build_checkpoint
 

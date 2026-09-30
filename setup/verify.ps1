@@ -335,6 +335,10 @@ Test-CheckItem "手册" "官方部署资产核验基准清单 (MANUAL/DEPLOYMENT
     Test-Path (Join-Path $ManualDir 'DEPLOYMENT-CHECKLIST.md')
 } "核验清单缺失，重新拉取仓库" "SSOT 清单在位" "$ManualDir\DEPLOYMENT-CHECKLIST.md"
 
+Test-CheckItem "手册" "跨平台运行与战术等价指南 (MANUAL/CROSS-PLATFORM.md)" {
+    Test-Path (Join-Path $ManualDir 'CROSS-PLATFORM.md')
+} "跨平台手册缺失，重新拉取仓库" "文件在位" "$ManualDir\CROSS-PLATFORM.md"
+
 # -----------------------------------------------------------------------------
 # 详细校对模式输出 (-Detailed / -Audit)
 # -----------------------------------------------------------------------------

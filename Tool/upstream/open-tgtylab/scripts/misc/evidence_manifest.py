@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """Maintain a deduplicated evidence manifest for an OpenTgtyLab case."""
 from __future__ import annotations
 import argparse, hashlib, json

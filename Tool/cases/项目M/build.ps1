@@ -1,4 +1,4 @@
-# build.ps1 -- Project M case packaging and validation
+﻿# build.ps1 -- Project M case packaging and validation
 $ErrorActionPreference = 'Stop'
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path

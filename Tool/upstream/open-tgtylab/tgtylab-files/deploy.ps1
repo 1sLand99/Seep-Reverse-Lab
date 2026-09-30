@@ -1,4 +1,4 @@
-# open-tgtylab Deploy v2.0
+﻿# open-tgtylab Deploy v2.0
 # Compatible: Windows 7/8/10/11, PowerShell 2.0-7.x, Core/Desktop
 
 param([switch]$Uninstall, [switch]$Verify, [switch]$Restore)

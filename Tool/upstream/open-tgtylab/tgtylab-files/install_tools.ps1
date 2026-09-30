@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     open-tgtylab Tool Installer
 .DESCRIPTION

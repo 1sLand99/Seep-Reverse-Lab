@@ -1,4 +1,4 @@
-# lifecycle_test.ps1 — 通过反射调用 SeepTool.exe 内置模块，验证 <项目A> 双向生命周期
+﻿# lifecycle_test.ps1 — 通过反射调用 SeepTool.exe 内置模块，验证 <项目A> 双向生命周期
 # 用法: powershell -NoProfile -ExecutionPolicy Bypass -File .\lifecycle_test.ps1
 $ErrorActionPreference = 'Continue'
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, System.Xaml

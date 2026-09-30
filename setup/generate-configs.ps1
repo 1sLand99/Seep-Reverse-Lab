@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
   Seep 工作台 — 各 Agent 配置一键自愈与绝对路径展开生成器 (Config Generator)
   用于解决 DSH、OpenCode、Claude Code 用户手工替换 <SEEP_ROOT> 出错的问题。
