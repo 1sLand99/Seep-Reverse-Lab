@@ -27,26 +27,21 @@ chmod +x setup/install.sh
 ./setup/install.sh
 ```
 
-### 2. 自动化校验与输出规范（★ 强制执行）
-- **部署完成后，Agent 必须主动执行校验**，严禁在未做验证前直接向用户声称“部署完成”；
+### 2. 自动化校验与输出规范（★ 强制执行官方基准校对）
+- **部署完成后，Agent 必须主动执行详细校对**，严禁在未做验证前直接向用户声称“部署完成”；
 - **当用户在任何时候要求校验**（例如发送 `check`、`doctor`、`检查环境`、`帮我校验一下安装是否完整`）时，Agent 必须立即执行：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\check.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\setup\verify.ps1 -Detailed
 ```
 *(在非 Windows 环境下直接运行 `python Tool/mcp/test_seep_mcp.py`)*
 
 - **汇报输出要求**：
-  Agent 读取命令返回后，必须在对话框中向用户输出结构化 Markdown 体检卡片，包含以下 7 大维度的明确反馈：
-  1. **📁 核心架构**：`Tool/` 根目录与 13 大案例库是否完备；
-  2. **🛠️ 技能系统**：`softseep`（总控）、`apkseep`、`ida-reverse` 等 9 个 Skill 是否已全部挂载；
-  3. **🔌 MCP 服务**：`seep` MCP（23项工具）、`ida`、`playwright`、`js-reverse` 的注册状态与路径是否有效；
-  4. **🧠 提示词与 Lab 状态机**：`SYSTEM.md` / `AGENTS.md` 及安全拦截扩展是否就绪；
-  5. **🔧 内置工具箱**：Jadx (v1.5.6)、Radare2 (v6.2.2)、Apktool (v3.0.3) 二进制是否可用；
-  6. **📚 战术知识库**：289 篇实战笔记与 3 个内置 MCP 源码组件是否可检索；
-  7. **📖 MANUAL 手册**：反调试、脱壳、PoC 自愈、部署全景手册是否完备。
-
-若全项通过，明确告知用户：**“工作台处于 [READY / 完备就绪] 状态，输入 lab： 即可开启测试。”**
+  Agent 读取命令返回后，必须以 `MANUAL/DEPLOYMENT-CHECKLIST.md` 官方基准为蓝本，在对话框向用户输出清晰的结构化校对看板，包含：
+  1. **🛠️ 技能系统 (Skills - 9项)**：逐项列出【技能名】\|【目标路径】\|【期望文件数】\|【实际文件数】\|【可用状态 (🟢 READY / 🔴 MISSING)】；
+  2. **🔌 MCP 服务 (4大引擎)**：逐项列出【服务名】\|【期望工具数】\|【实际状态】\|【状态判定】\|【降级或修复说明】（未装 IDA 时明确标明 `🟡 DEGRADED: 已由内置 Radare2 自动承接`）；
+  3. **🔧 物理内置工具箱**：Radare2 (v6.2.2)、Jadx (v1.5.6)、Apktool (v3.0.3) 与 289+ 知识库状态；
+  4. **🚀 总结与开工建议**：告知用户工作台当前可用能力，并提示重启会话输入 `lab：` 开启白盒审计。
 
 ---
 
