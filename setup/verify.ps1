@@ -267,6 +267,10 @@ Test-CheckItem "手册" "PoC 闭环自动化验证 SOP (MANUAL/POC-VALIDATION.md
     Test-Path (Join-Path $ManualDir 'POC-VALIDATION.md')
 } "PoC 验证手册缺失，重新拉取仓库"
 
+Test-CheckItem "手册" "全景部署与多 Agent 集成指南 (MANUAL/DEPLOYMENT.md)" {
+    Test-Path (Join-Path $ManualDir 'DEPLOYMENT.md')
+} "部署手册缺失，重新拉取仓库"
+
 Write-Host "`n================================================================================" -ForegroundColor White
 Write-Host ("  [体检报告] 核心检查通过: {0} 项" -f $script:OkCount) -ForegroundColor Green
 

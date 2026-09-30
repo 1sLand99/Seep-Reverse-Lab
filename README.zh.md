@@ -248,24 +248,34 @@ Seep\ (251 MB)
 - **操作系统**：Windows 10 / 11 x64（推荐），兼容 Linux / macOS
 - **核心运行时**：Python 3.11+、Node.js 18+、Git
 
-### 2. 一键部署
-在 PowerShell 中进入项目根目录执行：
+### 2. 一键自动化部署 (跨平台支持)
+
+**Windows 环境 (PowerShell)**:
 ```powershell
 cd setup
 powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
-> **脚本自动完成**：解压内置依赖包 → 校验工具完整性 → 安装 Python mcp 库 → 注册 MCP 服务 → 执行全量自检。
+
+**Linux / macOS 环境 (Bash)**:
+```bash
+chmod +x setup/install.sh
+./setup/install.sh
+```
+
+> **脚本全自动完成**：解压内置依赖包 (`node_modules.zip`) → 校验内置工具完整性 → 安装 Python mcp 库 → 注册 MCP 服务 → 展开绝对物理路径 → 执行全量自检。
 
 ### 3. 多 Agent 接入方式
 
-| 智能体平台 | 指令文件 | MCP 配置 | 接入方式 |
+| 智能体平台 | 核心指令 | MCP 服务配置 | 详细接入步骤 |
 |---|---|---|---|
-| **Pi Agent** | `Tool/prompts/SYSTEM.md` | `~/.pi/agent/mcp.json` | `install.ps1` 自动完成全部配置写入 |
-| **Claude Code** | 项目根 `CLAUDE.md` | 项目根 `.mcp.json` | 在工作台根目录执行 `claude`，自动读取 |
-| **DeepSeek Harness** | `Tool/prompts/AGENTS.md` | `DSH-PROFILE.md` (Cordis YAML) | 指令部署至工作目录 + MCP 插件写入 DSH Profile |
-| **OpenCode / Codex** | 项目根 `AGENTS.md` | 客户端全局配置 | 复制 `AGENTS.md` 至项目工作根目录 |
+| **Pi Agent** | `Tool/prompts/SYSTEM.md` | `~/.pi/agent/mcp.json` | 运行 `install.ps1` 自动写入，完成后**必须重启当前终端与 Pi 会话**。 |
+| **Claude Code** | 项目根 `CLAUDE.md` | 项目根 `.mcp.json` | 运行 `powershell .\setup\generate-configs.ps1` 自愈绝对路径后，在项目根执行 `claude`。 |
+| **DeepSeek Harness** | `Tool/prompts/AGENTS.md` | `DSH-PROFILE.md` | 运行 `setup\generate-configs.ps1` 生成 `cordis.generated.yml` 直接复制粘贴进 Profile。 |
+| **OpenCode / Codex** | 项目根 `AGENTS.md` | `opencode.jsonc` | 运行 `setup\generate-configs.ps1` 生成已填入当前绝对路径的 `opencode.jsonc`。 |
 
-### 4. 部署完备性校验（7 大维度 · 35 项检查）
+> 📖 **咨询级部署与全套排障手册**：关于四大 Agent 的具体配置细则、常见报错（`No module named mcp`、执行策略受限、Java环境缺省等）的解决方案，请详阅 [**MANUAL/DEPLOYMENT.md**](MANUAL/DEPLOYMENT.md)。
+
+### 4. 部署完备性校验（7 大维度 · 37 项检查）
 
 | 方式 | 操作 |
 |---|---|
