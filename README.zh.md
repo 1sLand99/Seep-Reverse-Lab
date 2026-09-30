@@ -268,8 +268,8 @@ chmod +x setup/install.sh
 |---|---|---|---|
 | **Pi Agent** | `Tool/prompts/SYSTEM.md` | `~/.pi/agent/mcp.json` | 运行 `install.ps1` 自动写入，完成后**必须重启当前终端与 Pi 会话**。 |
 | **Claude Code** | 项目根 `CLAUDE.md` | 项目根 `.mcp.json` | 运行 `powershell .\setup\generate-configs.ps1` 自愈绝对路径后，在项目根执行 `claude`。 |
-| **DeepSeek Harness** | `Tool/prompts/AGENTS.md` | `DSH-PROFILE.md` | 运行 `setup\generate-configs.ps1` 生成 `cordis.generated.yml` 直接复制粘贴进 Profile。 |
-| **OpenCode / Codex** | 项目根 `AGENTS.md` | `opencode.jsonc` | 运行 `setup\generate-configs.ps1` 生成已填入当前绝对路径的 `opencode.jsonc`。 |
+| **DeepSeek Harness** | `Tool/prompts/AGENTS.md` | `DSH-PROFILE.md` | 运行 `setup\generate-configs.ps1` 生成官方 `- insert:` 语法的 `cordis.generated.yml`，使用 `dsh web --patch ...` 或粘贴进 Profile。 |
+| **OpenCode / Codex** | 项目根 `AGENTS.md` | `opencode.jsonc` | 运行 `setup\generate-configs.ps1` 生成符合 OpenCode 官方标准的 `opencode.jsonc`，在项目根直接启动 `opencode`。 |
 
 > 📖 **咨询级部署与全套排障手册**：关于四大 Agent 的具体配置细则、常见报错（`No module named mcp`、执行策略受限、Java环境缺省等）的解决方案，请详阅 [**MANUAL/DEPLOYMENT.md**](MANUAL/DEPLOYMENT.md)。
 
